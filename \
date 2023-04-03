@@ -2,7 +2,6 @@ from selenium.webdriver import Chrome
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 import re
 
 
@@ -35,46 +34,43 @@ def print_element(element):
 
 def accept_cookies(driver):
     print("accept_cookies start")
+    driver.get("https://www.facebook.com")
     search_text = "Allow essential and optional cookies"
-    WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, f"//button[@title=\"{search_text}\"]"))).click()
+    WebDriverWait(driver.find_element(by=By.XPATH, value="//button"), 10, 1, None).until(lambda x: search_text in x.text, "Cookies not found")
+    buttons = driver.find_elements(By.XPATH, "//button")
+    for button in buttons:
+        if search_text in button.text:
+            button.click()
     print("accept_cookies end")
 
 def login(driver, email, password):
     print("login start")
     driver.get("https://www.facebook.com/login")
-    accept_cookies(driver)
     driver.find_element(By.ID, "email").send_keys(email)
     driver.find_element(By.ID, "pass").send_keys(password)
     driver.find_element(By.TAG_NAME, "form").submit()
-    WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, "//span[contains(text(), 'on your mind')]")))
     print("login end")
 
 def load_events(driver):
     print("load_events start")
     driver.get("https://www.facebook.com/events/search/?q=%C4%8Cakovec")
-    WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, "//div[@role='feed']")))
-    WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, "//div[contains(text(), 'Dates')]"))).click()
-    WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, "//div[contains(text(), 'This Weekend')]"))).click()
-    WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, "//div[@role='feed']")))
-    WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, "//a[@role = 'link' and boolean(@aria-label)]")))
-    driver.implicitly_wait(5)
     print("load_events end")
 
 def read_events(driver):
     print("read_events start")
-    main = driver.find_element(By.XPATH, "//div[@role = 'main']")
-    feed = main.find_element(By.XPATH, "//div[@role = 'feed']")
-    links = feed.find_elements(By.XPATH, "//a[@role = 'link' and boolean(@aria-label) and contains(@href, 'events/')]")
-    for link in links:
-        print(link.get_attribute("aria-label"))
-        #print(link.get_property('attributes')[0].keys())
+    found = WebDriverWait(driver.find_element(by=By.XPATH, value="//div[@role = 'feed']"), 10, 1, None).until(lambda x: len(x.text) > 0, "Feed not found")
+    if found:
+        links = driver.find_elements(by=By.XPATH, value="//a[@role = 'link' and boolean(@link)]")
+        print(links)
+        #for link in links:
+        #    for attr in link.get_property('attributes'):
+        #        print(attr)
     print("read_events end")
 
-def open_facebook(driver):
-    driver.get("https://www.facebook.com")
 
 if __name__ == "__main__":
     driver = get_driver(headless=False)
+    accept_cookies(driver)
     login(driver, credentials.mail, credentials.password)
-    load_events(driver)
-    read_events(driver)
+    #load_events(driver)
+    #read_events(driver)
