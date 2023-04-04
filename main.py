@@ -4,9 +4,10 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import re
-
-
+import pprint
 import credentials
+
+pp = pprint.PrettyPrinter(indent=2)
 
 def get_driver(headless=True):
     opts = Options()
@@ -23,15 +24,24 @@ def get_web_element_attribute_names(web_element):
     pattern = """([a-z]+-?[a-z]+_?)='?"?"""
     return re.findall(pattern, html)
 
-def print_element(element):
-    #print(element)
-    print(f"  tag_name[{element.tag_name}]")
-    print(f"  attributes[{element.get_attributes()}]")
-    #print(f"  text[{element.text}]")
-    #for a in get_web_element_attribute_names(element):
-    #    print(f"  {a}[{element.get_attribute(a)}]")
-    #for a in get_web_element_attribute_names(element):
-    #    print(f"  {a}[{element.get_attribute(a)}]")
+def print_element(driver, element):
+    everything = driver.execute_script(
+    'var element = arguments[0];'
+    'var attributes = {};'
+    'for (index = 0; index < element.attributes.length; ++index) {'
+    '    attributes[element.attributes[index].name] = element.attributes[index].value };'
+    'var properties = [];'
+    'properties[0] = attributes;'
+    'var element_text = element.textContent;'
+    'properties[1] = element_text;'
+    '// var styles = getComputedStyle(element);'
+    '// var computed_styles = {};'
+    '// for (index = 0; index < styles.length; ++index) {'
+    '//     var value_ = styles.getPropertyValue(styles[index]);'
+    '//     computed_styles[styles[index]] = value_ };'
+    '// properties[2] = computed_styles;'
+    'return properties;', element)
+    pp.pprint(everything)
 
 def accept_cookies(driver):
     print("accept_cookies start")
@@ -66,7 +76,8 @@ def read_events(driver):
     feed = main.find_element(By.XPATH, "//div[@role = 'feed']")
     links = feed.find_elements(By.XPATH, "//a[@role = 'link' and boolean(@aria-label) and contains(@href, 'events/')]")
     for link in links:
-        print(link.get_attribute("aria-label"))
+        print_element(driver, link)
+        #print(link.get_attribute("aria-label"))
         #print(link.get_property('attributes')[0].keys())
     print("read_events end")
 
