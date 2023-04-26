@@ -7,6 +7,20 @@ import re
 import pprint
 import credentials
 
+class TCOL:
+    # Foreground:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    # Formatting
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+    # End colored text
+    END = '\033[0m'
+    NC = '\x1b[0m'  # No Color
+
 pp = pprint.PrettyPrinter(indent=2)
 
 def get_driver(headless=True):
@@ -25,23 +39,17 @@ def get_web_element_attribute_names(web_element):
     return re.findall(pattern, html)
 
 def print_element(driver, element):
-    everything = driver.execute_script(
-    'var element = arguments[0];'
-    'var attributes = {};'
-    'for (index = 0; index < element.attributes.length; ++index) {'
-    '    attributes[element.attributes[index].name] = element.attributes[index].value };'
-    'var properties = [];'
-    'properties[0] = attributes;'
-    'var element_text = element.textContent;'
-    'properties[1] = element_text;'
-    '// var styles = getComputedStyle(element);'
-    '// var computed_styles = {};'
-    '// for (index = 0; index < styles.length; ++index) {'
-    '//     var value_ = styles.getPropertyValue(styles[index]);'
-    '//     computed_styles[styles[index]] = value_ };'
-    '// properties[2] = computed_styles;'
-    'return properties;', element)
-    pp.pprint(everything)
+    print(f"{TCOL.FAIL}tag_name{TCOL.END}[{element.tag_name}]")
+    attrs=[]
+    for attr in element.get_property('attributes'):
+        attrs.append([attr['name'], attr['value']])
+    for k,v in attrs:
+        #if k not in ["class"]:
+        print(f"  {TCOL.OKGREEN}{k}{TCOL.END}[{v}]")
+    print(f"  {TCOL.OKBLUE}text{TCOL.END}[{element.text}]")
+    all_children_by_xpath = element.find_elements(By.XPATH, "./*")
+    all_family_by_xpath = element.find_elements(By.XPATH, ".//*")
+    print(f"  {TCOL.WARNING}children{TCOL.END}[{len(all_children_by_xpath)}|{len(all_family_by_xpath)}]")
 
 def accept_cookies(driver):
     print("accept_cookies start")
@@ -56,7 +64,8 @@ def login(driver, email, password):
     driver.find_element(By.ID, "email").send_keys(email)
     driver.find_element(By.ID, "pass").send_keys(password)
     driver.find_element(By.TAG_NAME, "form").submit()
-    WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, "//span[contains(text(), 'on your mind')]")))
+    #WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, "//span[contains(text(), 'on your mind')]")))
+    WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, "//span[contains(text(), 'Welcome')]")))
     print("login end")
 
 def load_events(driver):
@@ -73,16 +82,14 @@ def load_events(driver):
 def read_events(driver):
     print("read_events start")
     main = driver.find_element(By.XPATH, "//div[@role = 'main']")
+    print_element(driver, main)
     feed = main.find_element(By.XPATH, "//div[@role = 'feed']")
-    links = feed.find_elements(By.XPATH, "//a[@role = 'link' and boolean(@aria-label) and contains(@href, 'events/')]")
+    print_element(driver, feed)
+    #links = feed.find_elements(By.XPATH, "//a[@role = 'link' and boolean(@aria-label) and contains(@href, '/events')]")
+    links = feed.find_elements(By.XPATH, "//a[@role = 'link']")
     for link in links:
         print_element(driver, link)
-        #print(link.get_attribute("aria-label"))
-        #print(link.get_property('attributes')[0].keys())
     print("read_events end")
-
-def open_facebook(driver):
-    driver.get("https://www.facebook.com")
 
 if __name__ == "__main__":
     driver = get_driver(headless=False)
